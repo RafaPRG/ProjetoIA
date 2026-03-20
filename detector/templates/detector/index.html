@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Detector de E-mails Maliciosos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">🛡️ Identificador de Ameaças</h2>
+        
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Remetente:</label>
+                        <input type="text" name="remetente" class="form-control" placeholder="ex: banco@seguro.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Assunto:</label>
+                        <input type="text" name="assunto" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Corpo do E-mail:</label>
+                        <textarea name="corpo" class="form-control" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Analisar E-mail</button>
+                </form>
+            </div>
+        </div>
+
+        {% if resultado %}
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">Análise da IA</div>
+            <div class="card-body">
+                <p style="white-space: pre-wrap;">{{ resultado }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
