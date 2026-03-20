@@ -28,6 +28,7 @@ def index(request):
         
         # Executamos a análise
         response = agent.run(prompt)
-        resultado = response.content # Captura o texto da resposta
+        # Remove marcas de negrito Markdown para exibir texto limpo na interface
+        resultado = response.content.replace("**", "")
 
     return render(request, "detector/index.html", {"resultado": resultado})
