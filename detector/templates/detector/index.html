@@ -64,6 +64,46 @@
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 18px;
         }
+        .game-card {
+            border-left: 4px solid #ff4d4d;
+        }
+        .progress {
+            background: #1c202b;
+            height: 8px;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #ff4d4d, #ff7b5f);
+        }
+        .mode-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 16px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: transform .15s ease, border-color .15s ease;
+        }
+        .mode-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,77,77,0.5);
+        }
+        .mode-card.active {
+            border-color: #ff4d4d;
+            box-shadow: 0 8px 24px rgba(255,77,77,0.25);
+        }
+        .hearts {
+            letter-spacing: 4px;
+            color: #ff6b6b;
+            font-size: 1.1rem;
+        }
+        .bubble {
+            display: inline-block;
+            background: rgba(255,77,77,0.12);
+            border: 1px solid rgba(255,77,77,0.35);
+            border-radius: 12px;
+            padding: 6px 10px;
+            color: #ffc9c9;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -84,6 +124,32 @@
         </div>
 
         <div class="glass rounded-4 p-4 mb-4">
+            <div class="section-title mb-2">Escolha o modo</div>
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                <div id="mode-analisar" class="mode-card active" onclick="switchMode('analisar')">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="section-title mb-1">Analisar e-mail</div>
+                            <div class="fw-semibold">Avaliação detalhada por IA</div>
+                        </div>
+                        <span class="badge bg-danger">Pro</span>
+                    </div>
+                    <p class="text-secondary mb-0" style="color:#9da3b5!important;">Cole um e-mail real e receba diagnóstico contextual.</p>
+                </div>
+                <div id="mode-jogo" class="mode-card" onclick="switchMode('jogo')">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="section-title mb-1">Jogo de phishing</div>
+                            <div class="fw-semibold">Treine seu radar</div>
+                        </div>
+                        <span class="badge bg-light text-dark">Play</span>
+                    </div>
+                    <p class="text-secondary mb-0" style="color:#9da3b5!important;">Decida rápido se o e-mail é seguro ou golpe e ganhe pontos.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-analisar" class="glass rounded-4 p-4 mb-4">
             <div class="section-title mb-3">Submeter e-mail</div>
             <form method="POST" class="grid">
                 {% csrf_token %}
@@ -114,6 +180,173 @@
             <pre class="mb-0" style="white-space: pre-wrap; color:#e8e9ee; background: transparent; border: none; padding:0;">{{ resultado }}</pre>
         </div>
         {% endif %}
+
+        <div id="section-jogo" class="glass rounded-4 p-4 mt-4 game-card" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="section-title mb-0">Treine seu olho</div>
+                <span class="badge bg-danger text-white">Game</span>
+            </div>
+            <p class="text-secondary mb-3" style="color:#9da3b5!important;">Classifique e-mails simulados como seguros ou phishing. Ganhe pontos, mantenha vidas e desbloqueie combos.</p>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="pill mb-0">
+                    <span class="badge bg-danger rounded-pill">Score</span>
+                    <span id="score">0</span>
+                </div>
+                <div class="pill mb-0">
+                    <span class="badge bg-secondary rounded-pill">Streak</span>
+                    <span id="streak">0</span>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="progress">
+                        <div id="timer-bar" class="progress-bar" style="width: 100%;"></div>
+                    </div>
+                    <small class="text-secondary" style="color:#9da3b5!important;">60s por sessão</small>
+                </div>
+                <div class="pill mb-0">
+                    <span class="badge bg-warning text-dark rounded-pill">Vidas</span>
+                    <span id="lives" class="hearts">❤ ❤ ❤</span>
+                </div>
+                <button id="start-btn" class="btn btn-outline-light btn-sm">Iniciar rodada</button>
+            </div>
+
+            <div id="game-area" class="p-3 rounded" style="background:#151821; border:1px solid #1f2431;">
+                <p class="mb-0 text-secondary" style="color:#9da3b5!important;">Clique em "Iniciar rodada" para começar.</p>
+            </div>
+        </div>
     </div>
+    <script>
+        function switchMode(mode) {
+            const ana = document.getElementById("section-analisar");
+            const jogo = document.getElementById("section-jogo");
+            const cardAna = document.getElementById("mode-analisar");
+            const cardJogo = document.getElementById("mode-jogo");
+            if (mode === "analisar") {
+                ana.style.display = "block";
+                jogo.style.display = "none";
+                cardAna.classList.add("active");
+                cardJogo.classList.remove("active");
+            } else {
+                ana.style.display = "none";
+                jogo.style.display = "block";
+                cardAna.classList.remove("active");
+                cardJogo.classList.add("active");
+            }
+        }
+
+        const cases = [
+            { from: "itau@suporte-itau.com", subject: "URGENTE: confirme seus dados agora", body: "Sua conta será bloqueada em 24h. Acesse o link e recadastre sua senha.", phishing: true, hints: ["Urgência forçada", "Domínio não oficial", "Link para recadastro"] },
+            { from: "faturamento@empresa.com", subject: "Nota fiscal eletrônica - março", body: "Segue NF-e em anexo referente ao contrato 2341. Dúvidas, fale com seu gerente.", phishing: false, hints: ["Remetente coerente", "Assunto específico", "Tom profissional"] },
+            { from: "seguranca@pagamento.com.br", subject: "Atualização de token", body: "Por medidas de segurança, instale o app no link encurtado: bit.ly/seguro.", phishing: true, hints: ["Link encurtado", "Pedido de instalação não solicitado"] },
+            { from: "rh@empresa.com", subject: "Comprovante de rendimentos 2025", body: "Olá, segue PDF oficial armazenado no SharePoint interno.", phishing: false, hints: ["Canal corporativo", "Conteúdo esperado de RH"] },
+            { from: "contato@governo.gov.br", subject: "Restituição disponível", body: "Cadastre sua chave PIX clicando aqui para liberar o pagamento.", phishing: true, hints: ["Chamada para ação fora do portal oficial", "Promessa financeira"] }
+        ];
+
+        let score = 0;
+        let streak = 0;
+        let lives = 3;
+        let timeLeft = 60;
+        let timerId = null;
+        let current = null;
+        let locked = false;
+
+        const scoreEl = document.getElementById("score");
+        const streakEl = document.getElementById("streak");
+        const timerBar = document.getElementById("timer-bar");
+        const gameArea = document.getElementById("game-area");
+        const startBtn = document.getElementById("start-btn");
+        const livesEl = document.getElementById("lives");
+
+        const celebrate = ["Radar afiado!", "Boa, você flagrou o golpe!", "Defesa reforçada!", "Combo ativado!"];
+        const warn = ["Quase! Fique atento ao domínio.", "Errou — olho no link encurtado.", "Ops, urgência suspeita aí."];
+
+        function randomCase() {
+            return cases[Math.floor(Math.random() * cases.length)];
+        }
+
+        function renderCase() {
+            current = randomCase();
+            locked = false;
+            gameArea.innerHTML = `
+                <div class="mb-2 text-secondary" style="color:#9da3b5!important;">Classifique este e-mail:</div>
+                <div class="mb-2"><strong>De:</strong> ${current.from}</div>
+                <div class="mb-2"><strong>Assunto:</strong> ${current.subject}</div>
+                <div class="mb-3"><strong>Corpo:</strong> ${current.body}</div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-success btn-sm" onclick="answer(false)">Seguro</button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="answer(true)">Phishing</button>
+                </div>
+            `;
+        }
+
+        function answer(choice) {
+            if (locked || !current) return;
+            locked = true;
+            const correct = choice === current.phishing;
+            if (correct) {
+                streak += 1;
+                score += 10 + (streak - 1) * 2;
+            } else {
+                streak = 0;
+                lives = Math.max(0, lives - 1);
+                livesEl.textContent = "❤ ".repeat(lives).trim();
+            }
+            scoreEl.textContent = score;
+            streakEl.textContent = streak;
+            const status = correct ? celebrate[Math.floor(Math.random()*celebrate.length)] : warn[Math.floor(Math.random()*warn.length)];
+            const statusColor = correct ? "#4ade80" : "#ff4d4d";
+            const hintList = current.hints.map(h => `<li>${h}</li>`).join("");
+            if (lives === 0) {
+                endGame("Suas vidas acabaram. Score final: " + score);
+                return;
+            }
+            gameArea.innerHTML = `
+                <div class="mb-2 bubble" style="color:${statusColor}; border-color:${statusColor}; background:rgba(255,77,77,0.08);">${status}</div>
+                <div class="mb-2"><strong>De:</strong> ${current.from}</div>
+                <div class="mb-2"><strong>Assunto:</strong> ${current.subject}</div>
+                <div class="mb-3"><strong>Corpo:</strong> ${current.body}</div>
+                <div class="mb-2 section-title">Pistas</div>
+                <ul class="mb-3" style="color:#e8e9ee;">${hintList}</ul>
+                <button class="btn btn-danger btn-sm" onclick="renderCase()">Próximo e-mail</button>
+            `;
+        }
+
+        function tick() {
+            timeLeft -= 1;
+            timerBar.style.width = Math.max(0, (timeLeft / 60) * 100) + "%";
+            if (timeLeft <= 0) {
+                clearInterval(timerId);
+                timerId = null;
+                locked = true;
+                endGame("Tempo esgotado. Score final: " + score);
+            }
+        }
+
+        function endGame(message) {
+            locked = true;
+            gameArea.innerHTML = `
+                <div class="mb-2 section-title">Fim de jogo</div>
+                <p class="mb-3 text-secondary" style="color:#9da3b5!important;">${message}</p>
+                <button class="btn btn-outline-light btn-sm" onclick="startGame()">Reiniciar</button>
+            `;
+            if (timerId) clearInterval(timerId);
+            timerId = null;
+        }
+
+        function startGame() {
+            score = 0;
+            streak = 0;
+            lives = 3;
+            timeLeft = 60;
+            scoreEl.textContent = score;
+            streakEl.textContent = streak;
+            timerBar.style.width = "100%";
+            livesEl.textContent = "❤ ❤ ❤";
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(tick, 1000);
+            renderCase();
+        }
+
+        startBtn.addEventListener("click", startGame);
+    </script>
 </body>
 </html>
