@@ -307,6 +307,10 @@
                     <span class="badge bg-secondary rounded-pill">Streak</span>
                     <span id="streak">0</span>
                 </div>
+                <div class="pill mb-0">
+                    <span class="badge bg-info text-dark rounded-pill">Nível</span>
+                    <span id="difficulty">Fácil</span>
+                </div>
                 <div class="flex-grow-1">
                     <div class="progress">
                         <div id="timer-bar" class="progress-bar" style="width: 100%;"></div>
@@ -403,6 +407,7 @@
         let streak = 0;
         let lives = 3;
         let timeLeft = GAME_DURATION;
+        let correctCount = 0;
         let timerId = null;
         let current = null;
         let locked = false;
@@ -413,13 +418,36 @@
         const gameArea = document.getElementById("game-area");
         const startBtn = document.getElementById("start-btn");
         const livesEl = document.getElementById("lives");
+        const difficultyEl = document.getElementById("difficulty");
 
-        const celebrate = ["Radar afiado!", "Boa, você flagrou o golpe!", "Defesa reforçada!", "Combo ativado!"];
-        const warn = ["Quase! Fique atento ao domínio.", "Errou — olho no link encurtado.", "Ops, urgência suspeita aí."];
+        const celebrate = [
+            "Radar afiado!",
+            "Boa, você flagrou o golpe!",
+            "Defesa reforçada!",
+            "Combo ativado!"
+        ];
+        const warnGeneric = [
+            "Quase! Olhe os sinais na próxima.",
+            "Reveja as pistas: algo passou batido.",
+            "Erro — confira domínio, tom e pedidos."
+        ];
+
+        function currentDifficulty() {
+            if (correctCount < 3) return "easy";
+            if (correctCount < 6) return "medium";
+            return "hard";
+        }
+
+        function updateDifficultyLabel() {
+            const label = currentDifficulty();
+            const map = { easy: "Fácil", medium: "Médio", hard: "Difícil" };
+            difficultyEl.textContent = map[label] || "Fácil";
+        }
 
         async function fetchCase() {
             try {
-                const res = await fetch("/api/game-case/");
+                const diff = currentDifficulty();
+                const res = await fetch(`/api/game-case/?difficulty=${diff}`);
                 if (!res.ok) throw new Error("Erro HTTP");
                 const data = await res.json();
                 if (!data.from || !data.subject || !data.body) throw new Error("Campos ausentes");
@@ -463,6 +491,7 @@
             if (correct) {
                 streak += 1;
                 score += 10 + (streak - 1) * 2;
+                correctCount += 1;
             } else {
                 streak = 0;
                 lives = Math.max(0, lives - 1);
@@ -470,9 +499,12 @@
             }
             scoreEl.textContent = score;
             streakEl.textContent = streak;
-            const status = correct ? celebrate[Math.floor(Math.random()*celebrate.length)] : warn[Math.floor(Math.random()*warn.length)];
-            const statusColor = correct ? "#4ade80" : "#ff4d4d";
+            updateDifficultyLabel();
             const hints = Array.isArray(current.hints) ? current.hints : [];
+            const status = correct
+                ? celebrate[Math.floor(Math.random() * celebrate.length)]
+                : (hints[0] ? `Dica: ${hints[0]}` : warnGeneric[Math.floor(Math.random() * warnGeneric.length)]);
+            const statusColor = correct ? "#4ade80" : "#ff4d4d";
             const hintList = hints.map(h => `<li>${h}</li>`).join("") || "<li>Pista indisponível</li>";
             if (lives === 0) {
                 endGame("Suas vidas acabaram. Score final: " + score);
@@ -516,10 +548,12 @@
             streak = 0;
             lives = 3;
             timeLeft = GAME_DURATION;
+            correctCount = 0;
             scoreEl.textContent = score;
             streakEl.textContent = streak;
             timerBar.style.width = "100%";
             livesEl.textContent = "♥ ♥ ♥";
+            updateDifficultyLabel();
             if (timerId) clearInterval(timerId);
             timerId = setInterval(tick, 1000);
             await renderCase();

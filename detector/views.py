@@ -39,6 +39,26 @@ THEMES = [
     "energia/serviços domésticos",
 ]
 
+PROMPT_BY_LEVEL = {
+    "easy": (
+        "Gere UM e-mail curto em português para treino de phishing nível FÁCIL. "
+        "Use sinais bem evidentes: erros de ortografia, urgência exagerada, links estranhos OU, se legítimo, tom institucional claro e sem pedidos de clique. "
+        "Mantenha estrutura simples (3-5 frases). "
+    ),
+    "medium": (
+        "Gere UM e-mail em português nível MÉDIO com sinais moderados. "
+        "Se for phishing, misture credibilidade com 1-2 sinais reais (domínio estranho, pedido de dados, discrepância de valor). "
+        "Se legítimo, mantenha tom profissional coerente, sem exageros. "
+        "Evite erros grotescos; mantenha verossimilhança. "
+    ),
+    "hard": (
+        "Gere UM e-mail em português nível DIFÍCIL, verossímil e sutil. "
+        "Se for phishing, inclua sinais discretos porém reais (domínio quase idêntico, link mascarado coerente, pedido fora de canal usual, senso de urgência leve). "
+        "Se legítimo, mantenha consistência completa (domínio correto, contexto claro, ausência de pedidos de credenciais). "
+        "Nada de exageros óbvios; evite instruções genéricas. "
+    ),
+}
+
 
 # Remove cercas markdown e espaços para tentar carregar o JSON vindo do modelo
 def _cleanup_json(text: str) -> str:
@@ -104,21 +124,24 @@ def game_case(request):
     Gera um único caso de e-mail (phishing ou legítimo) para o jogo.
     """
     try:
+        difficulty = request.GET.get("difficulty", "easy")
+        if difficulty not in PROMPT_BY_LEVEL:
+            difficulty = "easy"
         theme = random.choice(THEMES)
         target_phishing = random.choice([True, False])
         prompt = (
-            "Gere UM e-mail curto em português para treino de phishing. "
-            f"Tema sorteado (use, sem ficar nichado): {theme}. "
-            "Varie remetente, assunto, tom, vocabulário e formato. "
-            "Defina o campo phishing exatamente como: " + ("true" if target_phishing else "false") + ". "
-            "Retorne APENAS JSON (sem markdown) com chaves: "
-            '{"from":"remetente","subject":"assunto","body":"corpo","phishing":true|false,"hints":["pista1","pista2","pista3"]}. '
-            "Regras das pistas: (1) cada pista deve citar algo que REALMENTE aparece no e-mail "
-            "(remetente, domínio, link, palavra específica, valor, anexo mencionado), "
-            "(2) não invente links encurtados ou detalhes ausentes, "
-            "(3) seja direto e curto (até 12 palavras), "
-            "(4) inclua variedade de sinais técnicos e de contexto. "
-            "Evite repetição de 'URGENTE' ou formatação de alerta em todos os casos."
+            PROMPT_BY_LEVEL[difficulty]
+            + f"Tema sorteado (use, sem ficar nichado): {theme}. "
+            + "Varie remetente, assunto, tom, vocabulário e formato. "
+            + "Defina o campo phishing exatamente como: " + ("true" if target_phishing else "false") + ". "
+            + "Retorne APENAS JSON (sem markdown) com chaves: "
+            + '{"from":"remetente","subject":"assunto","body":"corpo","phishing":true|false,"hints":["pista1","pista2","pista3"]}. '
+            + "Regras das pistas: (1) cada pista deve citar algo que REALMENTE aparece no e-mail "
+            + "(remetente, domínio, link explícito se existir, palavra específica, valor, anexo mencionado), "
+            + "(2) NÃO invente links encurtados ou detalhes ausentes, "
+            + "(3) seja direto e curto (até 12 palavras), "
+            + "(4) inclua variedade de sinais técnicos e de contexto, consistentes com o texto. "
+            + "Evite repetir 'URGENTE' ou usar alertas se o texto não tiver isso."
         )
         response = agent.run(prompt)
         raw = _cleanup_json(response.content)
