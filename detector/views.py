@@ -1,7 +1,6 @@
 import json
 import random
 import re
-from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET
@@ -17,10 +16,11 @@ agent = Agent(
     instructions=(
         "Analise se o email é malicioso (phishing/spam). "
         "Obrigatório cobrir três partes: remetente (domínio, legitimidade), assunto e corpo. "
-        "Foque bem em analisar o remtente e enxergar domínios suspeitos"
-        "Evite causar duvida no usuário, falando que pode ser ou não ser sempre"
-        "Se tiver duvida se é malicioso ou não, indique e peça para o usuário analisar os sinais que você apontou, e procurar a legitimidade. "
+        "Foque em analisar o remetente e domínios suspeitos. "
+        "Evite causar dúvida constante; dê um veredito claro. "
+        "Se houver incerteza, peça confirmação ao usuário com base nos sinais apontados. "
         "Aponte sinais suspeitos e dê um veredito final objetivo."
+        "Coloque numeros para identificar os tópicos, ao invés de # ou *"
     ),
 )
 
@@ -39,6 +39,7 @@ THEMES = [
     "energia/serviços domésticos",
 ]
 
+
 # Remove cercas markdown e espaços para tentar carregar o JSON vindo do modelo
 def _cleanup_json(text: str) -> str:
     cleaned = text.strip()
@@ -46,33 +47,61 @@ def _cleanup_json(text: str) -> str:
     cleaned = re.sub(r"```$", "", cleaned).strip()
     return cleaned
 
+
+def _extract_verdict(text: str) -> str:
+    lowered = text.lower()
+    # Sinais de segurança explícitos
+    safe_markers = [
+        "legitimo", "legítimo", "seguro", "confiável", "nao é phishing", "não é phishing",
+        "nao parece phishing", "não parece phishing", "sem sinais de phishing", "sem indicios",
+        "não encontrei indícios", "nao encontrei indicios"
+    ]
+    # Sinais de suspeita/ataque
+    mal_markers = ["phishing", "malicioso", "suspeito", "golpe", "spam"]
+
+    negates_phishing = re.search(r"n[ãa]o[^\.]{0,60}(phishing|golpe|malicioso|suspeito|spam)", lowered)
+    has_safe = any(s in lowered for s in safe_markers) or bool(negates_phishing)
+    has_mal = any(m in lowered for m in mal_markers)
+
+    if has_safe and not has_mal:
+        return "Legítimo"
+    if has_mal and not has_safe:
+        return "Malicioso"
+    if has_safe and has_mal:
+        # Prefer o que vem com negação explícita
+        if negates_phishing:
+            return "Legítimo"
+        # fallback conservador
+        return "Malicioso"
+    return "Legítimo"
+
+
 def index(request):
     if request.method == "POST":
         remetente = request.POST.get("remetente")
         assunto = request.POST.get("assunto")
         corpo = request.POST.get("corpo")
 
-        # Montamos o prompt dinamicamente
         prompt = f"""
         Remetente: {remetente}
         Assunto: {assunto}
         Email: {corpo}
         """
-        
-        # Executamos a análise
+
         response = agent.run(prompt)
         resultado = response.content.replace("**", "")
-        messages.success(request, resultado)
+        veredito = _extract_verdict(resultado)
+        request.session["ultima_analise"] = {"resultado": resultado, "veredito": veredito}
         return redirect("index")
 
-    return render(request, "detector/index.html")
+    contexto = request.session.pop("ultima_analise", None)
+    return render(request, "detector/index.html", contexto or {})
 
 
 @require_GET
 def game_case(request):
     """
     Gera um único caso de e-mail (phishing ou legítimo) para o jogo.
-    Usa fallback local quando não conseguimos parsear a resposta da IA.
     """
     try:
         theme = random.choice(THEMES)
@@ -95,7 +124,6 @@ def game_case(request):
         raw = _cleanup_json(response.content)
         data = json.loads(raw)
 
-        # Normalização defensiva
         data["phishing"] = target_phishing if "phishing" not in data else bool(data.get("phishing"))
         data["hints"] = [h for h in data.get("hints", []) if h][:4]
         if not data["hints"]:
