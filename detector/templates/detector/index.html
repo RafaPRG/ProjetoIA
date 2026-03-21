@@ -104,10 +104,68 @@
             color: #ffc9c9;
             font-size: 0.85rem;
         }
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 17, 21, 0.94);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 50;
+        }
+        .profile-card {
+            max-width: 760px;
+            width: 100%;
+        }
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+        }
     </style>
 </head>
 <body>
-    <div class="container py-5">
+    <div id="profile-overlay" class="overlay">
+        <div class="profile-card glass rounded-4 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <div class="section-title mb-1">Configurar perfil</div>
+                    <div class="fw-semibold">Personalize seu radar anti-phishing</div>
+                </div>
+                <span class="badge bg-danger">Novo</span>
+            </div>
+            <p class="text-secondary" style="color:#9da3b5!important;">Preencha rápido para deixar a experiência com a sua cara. Os dados ficam apenas no seu navegador.</p>
+            <form id="profile-form" class="profile-grid">
+                <div>
+                    <label class="form-label">Nome</label>
+                    <input id="profile-name" type="text" class="form-control" required>
+                </div>
+                <div>
+                    <label class="form-label">Cargo</label>
+                    <input id="profile-role" type="text" class="form-control" required>
+                </div>
+                <div>
+                    <label class="form-label">Empresa/Órgão</label>
+                    <input id="profile-company" type="text" class="form-control" required>
+                </div>
+                <div>
+                    <label class="form-label">Maturidade em segurança</label>
+                    <select id="profile-maturity" class="form-control" required>
+                        <option>Inicial</option>
+                        <option>Intermediário</option>
+                        <option>Avançado</option>
+                    </select>
+                </div>
+            </form>
+            <div class="d-flex gap-2 mt-3">
+                <div class="flex-fill"></div>
+                <button type="submit" form="profile-form" class="btn btn-danger flex-fill">Entrar no radar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-shell" class="container py-5" style="display:none;">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <div class="pill mb-2">
@@ -116,10 +174,12 @@
                 </div>
                 <h1 class="h3 fw-bold mb-0">Radar de E-mails Maliciosos</h1>
                 <p class="text-secondary mb-0" style="color:#9da3b5!important;">Classificação assistida por IA para proteger caixas de entrada.</p>
+                <div id="profile-summary" class="bubble mt-2" style="display:none;"></div>
             </div>
             <div class="text-end d-none d-md-block">
                 <div class="section-title">Confiabilidade</div>
                 <div class="fw-semibold">LLM Llama 3.3 • Análise contextual</div>
+                <button id="logout-btn" class="btn btn-outline-light btn-sm mt-2">Sair / trocar perfil</button>
             </div>
         </div>
 
@@ -169,17 +229,19 @@
                     <button type="submit" class="btn btn-danger w-100 py-2 fw-semibold">Analisar e sinalizar</button>
                 </div>
             </form>
-        </div>
 
-        {% if resultado %}
-        <div class="glass rounded-4 p-4 result-card">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="section-title mb-0">Resultado da análise</div>
-                <span class="badge bg-danger text-white">IA</span>
-            </div>
-            <pre class="mb-0" style="white-space: pre-wrap; color:#e8e9ee; background: transparent; border: none; padding:0;">{{ resultado }}</pre>
+            {% if messages %}
+                {% for message in messages %}
+                <div class="rounded-4 p-4 result-card mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="section-title mb-0">Resultado da análise</div>
+                        <span class="badge bg-danger text-white">IA</span>
+                    </div>
+                    <pre class="mb-0" style="white-space: pre-wrap; color:#e8e9ee; background: transparent; border: none; padding:0;">{{ message }}</pre>
+                </div>
+                {% endfor %}
+            {% endif %}
         </div>
-        {% endif %}
 
         <div id="section-jogo" class="glass rounded-4 p-4 mt-4 game-card" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -200,11 +262,11 @@
                     <div class="progress">
                         <div id="timer-bar" class="progress-bar" style="width: 100%;"></div>
                     </div>
-                    <small class="text-secondary" style="color:#9da3b5!important;">60s por sessão</small>
+                    <small class="text-secondary" style="color:#9da3b5!important;">120s por sessão</small>
                 </div>
                 <div class="pill mb-0">
                     <span class="badge bg-warning text-dark rounded-pill">Vidas</span>
-                    <span id="lives" class="hearts">❤ ❤ ❤</span>
+                    <span id="lives" class="hearts">♥ ♥ ♥</span>
                 </div>
                 <button id="start-btn" class="btn btn-outline-light btn-sm">Iniciar rodada</button>
             </div>
@@ -233,18 +295,65 @@
             }
         }
 
-        const cases = [
-            { from: "itau@suporte-itau.com", subject: "URGENTE: confirme seus dados agora", body: "Sua conta será bloqueada em 24h. Acesse o link e recadastre sua senha.", phishing: true, hints: ["Urgência forçada", "Domínio não oficial", "Link para recadastro"] },
-            { from: "faturamento@empresa.com", subject: "Nota fiscal eletrônica - março", body: "Segue NF-e em anexo referente ao contrato 2341. Dúvidas, fale com seu gerente.", phishing: false, hints: ["Remetente coerente", "Assunto específico", "Tom profissional"] },
-            { from: "seguranca@pagamento.com.br", subject: "Atualização de token", body: "Por medidas de segurança, instale o app no link encurtado: bit.ly/seguro.", phishing: true, hints: ["Link encurtado", "Pedido de instalação não solicitado"] },
-            { from: "rh@empresa.com", subject: "Comprovante de rendimentos 2025", body: "Olá, segue PDF oficial armazenado no SharePoint interno.", phishing: false, hints: ["Canal corporativo", "Conteúdo esperado de RH"] },
-            { from: "contato@governo.gov.br", subject: "Restituição disponível", body: "Cadastre sua chave PIX clicando aqui para liberar o pagamento.", phishing: true, hints: ["Chamada para ação fora do portal oficial", "Promessa financeira"] }
-        ];
+        // Onboarding de perfil (mockado e persistido no navegador)
+        const profileOverlay = document.getElementById("profile-overlay");
+        const appShell = document.getElementById("app-shell");
+        const profileForm = document.getElementById("profile-form");
+        const profileSummary = document.getElementById("profile-summary");
+        const logoutBtn = document.getElementById("logout-btn");
 
+        function renderProfileBadge(profile) {
+            profileSummary.style.display = "inline-block";
+            profileSummary.textContent = `${profile.name} • ${profile.role} @ ${profile.company} • ${profile.maturity}`;
+        }
+
+        function unlockApp(profile) {
+            profileOverlay.style.display = "none";
+            appShell.style.display = "block";
+            renderProfileBadge(profile);
+        }
+
+        function resetProfile() {
+            localStorage.removeItem("radarProfile");
+            profileForm.reset();
+            profileSummary.style.display = "none";
+            profileOverlay.style.display = "flex";
+            appShell.style.display = "none";
+        }
+
+        profileForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const profile = {
+                name: document.getElementById("profile-name").value,
+                role: document.getElementById("profile-role").value,
+                company: document.getElementById("profile-company").value,
+                maturity: document.getElementById("profile-maturity").value
+            };
+            localStorage.setItem("radarProfile", JSON.stringify(profile));
+            unlockApp(profile);
+        });
+
+        logoutBtn.addEventListener("click", resetProfile);
+
+        (function bootstrapProfile() {
+            const saved = localStorage.getItem("radarProfile");
+            if (saved) {
+                try {
+                    unlockApp(JSON.parse(saved));
+                    return;
+                } catch (_) {}
+            }
+            profileOverlay.style.display = "flex";
+            appShell.style.display = "none";
+        })();
+
+        // Jogo com casos gerados pela Llama (endpoint Django)
+
+        const GAME_DURATION = 120;
         let score = 0;
         let streak = 0;
         let lives = 3;
-        let timeLeft = 60;
+        let timeLeft = GAME_DURATION;
         let timerId = null;
         let current = null;
         let locked = false;
@@ -259,12 +368,32 @@
         const celebrate = ["Radar afiado!", "Boa, você flagrou o golpe!", "Defesa reforçada!", "Combo ativado!"];
         const warn = ["Quase! Fique atento ao domínio.", "Errou — olho no link encurtado.", "Ops, urgência suspeita aí."];
 
-        function randomCase() {
-            return cases[Math.floor(Math.random() * cases.length)];
+        async function fetchCase() {
+            try {
+                const res = await fetch("/api/game-case/");
+                if (!res.ok) throw new Error("Erro HTTP");
+                const data = await res.json();
+                if (!data.from || !data.subject || !data.body) throw new Error("Campos ausentes");
+                data.hints = Array.isArray(data.hints) ? data.hints : [];
+                return data;
+            } catch (_) {
+                throw _;
+            }
         }
 
-        function renderCase() {
-            current = randomCase();
+        async function renderCase() {
+            locked = true;
+            gameArea.innerHTML = `<p class="mb-0 text-secondary" style="color:#9da3b5!important;">Gerando novo e-mail com IA...</p>`;
+            const next = await fetchCase().catch(() => null);
+            if (!next) {
+                gameArea.innerHTML = `
+                    <div class="mb-2 section-title">Falha ao gerar</div>
+                    <p class="mb-3 text-secondary" style="color:#9da3b5!important;">Não consegui gerar um e-mail agora. Tente novamente.</p>
+                    <button class="btn btn-outline-light btn-sm" onclick="renderCase()">Tentar de novo</button>
+                `;
+                return;
+            }
+            current = next;
             locked = false;
             gameArea.innerHTML = `
                 <div class="mb-2 text-secondary" style="color:#9da3b5!important;">Classifique este e-mail:</div>
@@ -281,20 +410,21 @@
         function answer(choice) {
             if (locked || !current) return;
             locked = true;
-            const correct = choice === current.phishing;
+            const correct = choice === Boolean(current.phishing);
             if (correct) {
                 streak += 1;
                 score += 10 + (streak - 1) * 2;
             } else {
                 streak = 0;
                 lives = Math.max(0, lives - 1);
-                livesEl.textContent = "❤ ".repeat(lives).trim();
+                livesEl.textContent = "♥ ".repeat(lives).trim();
             }
             scoreEl.textContent = score;
             streakEl.textContent = streak;
             const status = correct ? celebrate[Math.floor(Math.random()*celebrate.length)] : warn[Math.floor(Math.random()*warn.length)];
             const statusColor = correct ? "#4ade80" : "#ff4d4d";
-            const hintList = current.hints.map(h => `<li>${h}</li>`).join("");
+            const hints = Array.isArray(current.hints) ? current.hints : [];
+            const hintList = hints.map(h => `<li>${h}</li>`).join("") || "<li>Pista indisponível</li>";
             if (lives === 0) {
                 endGame("Suas vidas acabaram. Score final: " + score);
                 return;
@@ -312,7 +442,7 @@
 
         function tick() {
             timeLeft -= 1;
-            timerBar.style.width = Math.max(0, (timeLeft / 60) * 100) + "%";
+            timerBar.style.width = Math.max(0, (timeLeft / GAME_DURATION) * 100) + "%";
             if (timeLeft <= 0) {
                 clearInterval(timerId);
                 timerId = null;
@@ -332,18 +462,18 @@
             timerId = null;
         }
 
-        function startGame() {
+        async function startGame() {
             score = 0;
             streak = 0;
             lives = 3;
-            timeLeft = 60;
+            timeLeft = GAME_DURATION;
             scoreEl.textContent = score;
             streakEl.textContent = streak;
             timerBar.style.width = "100%";
-            livesEl.textContent = "❤ ❤ ❤";
+            livesEl.textContent = "♥ ♥ ♥";
             if (timerId) clearInterval(timerId);
             timerId = setInterval(tick, 1000);
-            renderCase();
+            await renderCase();
         }
 
         startBtn.addEventListener("click", startGame);
