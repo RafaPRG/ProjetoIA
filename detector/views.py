@@ -108,10 +108,20 @@ def index(request):
         Email: {corpo}
         """
 
-        response = agent.run(prompt)
-        resultado = response.content.replace("**", "")
-        veredito = _extract_verdict(resultado)
-        request.session["ultima_analise"] = {"resultado": resultado, "veredito": veredito}
+        try:
+            response = agent.run(prompt)
+            resultado = response.content.replace("**", "")
+            veredito = _extract_verdict(resultado)
+            request.session["ultima_analise"] = {
+                "resultado": resultado,
+                "veredito": veredito,
+                "remetente": remetente,
+                "assunto": assunto,
+            }
+        except Exception:
+            request.session["ultima_analise"] = {
+                "erro": "Não foi possível analisar agora. Tente novamente em instantes."
+            }
         return redirect("index")
 
     contexto = request.session.pop("ultima_analise", None)
