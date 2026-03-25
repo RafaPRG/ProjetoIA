@@ -1,13 +1,16 @@
 import json
+import os
 import random
 import re
+import unicodedata
+
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET
+
 from agno.agent import Agent
 from agno.models.groq import Groq
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -19,7 +22,7 @@ agent = Agent(
         "Foque em analisar o remetente e domínios suspeitos. "
         "Evite causar dúvida constante; dê um veredito claro. "
         "Se houver incerteza, peça confirmação ao usuário com base nos sinais apontados. "
-        "Aponte sinais suspeitos e dê um veredito final objetivo."
+        "Aponte sinais suspeitos e dê um veredito final objetivo. "
         "Coloque numeros para identificar os tópicos, ao invés de # ou *"
     ),
 )
@@ -60,7 +63,6 @@ PROMPT_BY_LEVEL = {
 }
 
 
-# Remove cercas markdown e espaços para tentar carregar o JSON vindo do modelo
 def _cleanup_json(text: str) -> str:
     cleaned = text.strip()
     cleaned = re.sub(r"^```(?:json)?", "", cleaned, flags=re.IGNORECASE).strip()
@@ -68,18 +70,27 @@ def _cleanup_json(text: str) -> str:
     return cleaned
 
 
+def _normalize(text: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", text)
+    return "".join(ch for ch in nfkd if not unicodedata.combining(ch)).lower()
+
+
 def _extract_verdict(text: str) -> str:
-    lowered = text.lower()
-    # Sinais de segurança explícitos
+    lowered = _normalize(text)
     safe_markers = [
-        "legitimo", "legítimo", "seguro", "confiável", "nao é phishing", "não é phishing",
-        "nao parece phishing", "não parece phishing", "sem sinais de phishing", "sem indicios",
-        "não encontrei indícios", "nao encontrei indicios"
+        "legitimo",
+        "seguro",
+        "confiavel",
+        "nao e phishing",
+        "nao eh phishing",
+        "nao parece phishing",
+        "sem sinais de phishing",
+        "sem indicios",
+        "nao encontrei indicios",
     ]
-    # Sinais de suspeita/ataque
     mal_markers = ["phishing", "malicioso", "suspeito", "golpe", "spam"]
 
-    negates_phishing = re.search(r"n[ãa]o[^\.]{0,60}(phishing|golpe|malicioso|suspeito|spam)", lowered)
+    negates_phishing = re.search(r"nao[^\.\n]{0,80}(phishing|golpe|malicioso|suspeito|spam)", lowered)
     has_safe = any(s in lowered for s in safe_markers) or bool(negates_phishing)
     has_mal = any(m in lowered for m in mal_markers)
 
@@ -88,10 +99,8 @@ def _extract_verdict(text: str) -> str:
     if has_mal and not has_safe:
         return "Malicioso"
     if has_safe and has_mal:
-        # Prefer o que vem com negação explícita
         if negates_phishing:
             return "Legítimo"
-        # fallback conservador
         return "Malicioso"
     return "Legítimo"
 
@@ -102,11 +111,10 @@ def index(request):
         assunto = request.POST.get("assunto")
         corpo = request.POST.get("corpo")
 
-        prompt = f"""
-        Remetente: {remetente}
-        Assunto: {assunto}
-        Email: {corpo}
-        """
+        prompt = (
+            "Classifique o e-mail a seguir. Responda em texto curto. "
+            "Remetente: {remetente}\nAssunto: {assunto}\nEmail: {corpo}"
+        ).format(remetente=remetente, assunto=assunto, corpo=corpo)
 
         try:
             response = agent.run(prompt)

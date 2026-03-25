@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 {% load static %}
 <html lang="pt-br">
 <head>
@@ -7,16 +7,53 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
+            --bg-gradient: radial-gradient(circle at 20% 20%, rgba(255, 59, 48, 0.12), transparent 35%),
+                           radial-gradient(circle at 80% 10%, rgba(255, 99, 71, 0.16), transparent 40%),
+                           #0f1115;
+            --text: #e8e9ee;
+            --text-secondary: #9da3b5;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.05);
+            --card-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+            --input-bg: #151821;
+            --input-border: #1f2431;
+            --overlay-bg: rgba(15, 17, 21, 0.94);
+            --bubble-bg: rgba(255,77,77,0.12);
+            --bubble-border: rgba(255,77,77,0.35);
+            --bubble-text: #ffc9c9;
+            --pill-bg: rgba(255, 77, 77, 0.15);
+            --pill-border: rgba(255, 77, 77, 0.35);
+            --pill-text: #ffc9c9;
+            --progress-bg: #1c202b;
+            --mode-hover: rgba(255,77,77,0.5);
             min-height: 100vh;
-            background: radial-gradient(circle at 20% 20%, rgba(255, 59, 48, 0.12), transparent 35%),
-                        radial-gradient(circle at 80% 10%, rgba(255, 99, 71, 0.16), transparent 40%),
-                        #0f1115;
-            color: #e8e9ee;
+            background: var(--bg-gradient);
+            color: var(--text);
+            transition: background .2s ease, color .2s ease;
+        }
+        body.light-mode {
+            --bg-gradient: linear-gradient(180deg, #f9fafb 0%, #eef2f7 60%, #e5e7eb 100%);
+            --text: #0f172a;
+            --text-secondary: #4b5563;
+            --card-bg: #ffffff;
+            --card-border: #e5e7eb;
+            --card-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+            --input-bg: #ffffff;
+            --input-border: #d1d5db;
+            --overlay-bg: rgba(248, 250, 252, 0.92);
+            --bubble-bg: rgba(255,77,77,0.08);
+            --bubble-border: rgba(255,77,77,0.24);
+            --bubble-text: #b91c1c;
+            --pill-bg: rgba(255, 77, 77, 0.12);
+            --pill-border: rgba(255, 77, 77, 0.25);
+            --pill-text: #b91c1c;
+            --progress-bg: #e5e7eb;
+            --mode-hover: rgba(255,77,77,0.3);
         }
         .glass {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            box-shadow: var(--card-shadow);
             backdrop-filter: blur(8px);
         }
         .btn-danger {
@@ -32,7 +69,7 @@
             text-transform: uppercase;
             font-weight: 700;
             font-size: 0.75rem;
-            color: #9da3b5;
+            color: var(--text-secondary);
         }
         .pill {
             display: inline-flex;
@@ -40,18 +77,18 @@
             gap: 8px;
             padding: 6px 12px;
             border-radius: 999px;
-            background: rgba(255, 77, 77, 0.15);
-            border: 1px solid rgba(255, 77, 77, 0.35);
-            color: #ffc9c9;
+            background: var(--pill-bg);
+            border: 1px solid var(--pill-border);
+            color: var(--pill-text);
             font-size: 0.85rem;
         }
         label {
-            color: #cdd1dc;
+            color: var(--text-secondary);
         }
         .form-control, textarea {
-            background: #151821;
-            border: 1px solid #1f2431;
-            color: #e8e9ee;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text);
         }
         .form-control:focus, textarea:focus {
             border-color: #ff4d4d;
@@ -69,15 +106,15 @@
             border-left: 4px solid #ff4d4d;
         }
         .progress {
-            background: #1c202b;
+            background: var(--progress-bg);
             height: 8px;
         }
         .progress-bar {
             background: linear-gradient(90deg, #ff4d4d, #ff7b5f);
         }
         .mode-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
             padding: 16px;
             border-radius: 16px;
             cursor: pointer;
@@ -85,7 +122,7 @@
         }
         .mode-card:hover {
             transform: translateY(-2px);
-            border-color: rgba(255,77,77,0.5);
+            border-color: var(--mode-hover);
         }
         .mode-card.active {
             border-color: #ff4d4d;
@@ -98,23 +135,26 @@
         }
         .bubble {
             display: inline-block;
-            background: rgba(255,77,77,0.12);
-            border: 1px solid rgba(255,77,77,0.35);
+            background: var(--bubble-bg);
+            border: 1px solid var(--bubble-border);
             border-radius: 12px;
             padding: 6px 10px;
-            color: #ffc9c9;
+            color: var(--bubble-text);
             font-size: 0.85rem;
         }
         .overlay {
             position: fixed;
             inset: 0;
-            background: rgba(15, 17, 21, 0.94);
+            background: var(--overlay-bg);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
             z-index: 50;
         }
+        .text-soft { color: var(--text-secondary) !important; }
+        .text-body { color: var(--text) !important; }
+        .theme-toggle { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
         .profile-card {
             max-width: 760px;
             width: 100%;
@@ -131,8 +171,8 @@
             align-items: start;
         }
         .verdict-card {
-            border: 1px solid rgba(255,255,255,0.06);
-            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
             border-radius: 16px;
             padding: 16px;
             min-height: 100%;
@@ -171,7 +211,7 @@
                 </div>
                 <span class="badge bg-danger">Novo</span>
             </div>
-            <p class="text-secondary" style="color:#9da3b5!important;">Preencha rápido para deixar a experiência com a sua cara. Os dados ficam apenas no seu navegador.</p>
+            <p class="text-secondary text-soft">Preencha rápido para deixar a experiência com a sua cara. Os dados ficam apenas no seu navegador.</p>
             <form id="profile-form" class="profile-grid">
                 <div>
                     <label class="form-label">Nome</label>
@@ -212,14 +252,17 @@
                         <span>Monitoramento contínuo de phishing</span>
                     </div>
                     <h1 class="h3 fw-bold mb-0">Radar de E-mails Maliciosos</h1>
-                    <p class="text-secondary mb-0" style="color:#9da3b5!important;">Classificação assistida por IA para proteger caixas de entrada.</p>
+                    <p class="text-secondary text-soft mb-0">Classificação assistida por IA para proteger caixas de entrada.</p>
                     <div id="profile-summary" class="bubble mt-2" style="display:none;"></div>
                 </div>
             </div>
-            <div class="text-end d-none d-md-block">
+            <div class="text-end d-flex flex-column align-items-end gap-2">
+                <div class="d-flex gap-2">
+                    <button id="theme-toggle" class="btn btn-outline-light btn-sm theme-toggle outline-switch">Modo claro</button>
+                    <button id="logout-btn" class="btn btn-outline-light btn-sm outline-switch">Sair / trocar perfil</button>
+                </div>
                 <div class="section-title">Confiabilidade</div>
-                <div class="fw-semibold">LLM Llama 3.3 • Análise contextual</div>
-                <button id="logout-btn" class="btn btn-outline-light btn-sm mt-2">Sair / trocar perfil</button>
+                <div class="fw-semibold text-soft">LLM Llama 3.3 • Análise contextual</div>
             </div>
         </div>
 
@@ -234,7 +277,7 @@
                         </div>
                         <span class="badge bg-danger">Pro</span>
                     </div>
-                    <p class="text-secondary mb-0" style="color:#9da3b5!important;">Cole um e-mail real e receba diagnóstico contextual.</p>
+                    <p class="text-secondary text-soft mb-0">Cole um e-mail real e receba diagnóstico contextual.</p>
                 </div>
                 <div id="mode-jogo" class="mode-card" onclick="switchMode('jogo')">
                     <div class="d-flex justify-content-between">
@@ -244,7 +287,7 @@
                         </div>
                         <span class="badge bg-light text-dark">Play</span>
                     </div>
-                    <p class="text-secondary mb-0" style="color:#9da3b5!important;">Decida rápido se o e-mail é seguro ou golpe e ganhe pontos.</p>
+                    <p class="text-secondary text-soft mb-0">Decida rápido se o e-mail é seguro ou golpe e ganhe pontos.</p>
                 </div>
             </div>
         </div>
@@ -290,7 +333,7 @@
                         </div>
                         {% endif %}
                     {% else %}
-                        <p class="text-secondary mb-0" style="color:#9da3b5!important;">Envie um e-mail para ver o veredito imediato.</p>
+                        <p class="text-secondary text-soft mb-0">Envie um e-mail para ver o veredito imediato.</p>
                     {% endif %}
                 </div>
             </div>
@@ -301,14 +344,14 @@
                     <div>
                         <div class="section-title mb-0">Resultado da análise</div>
                         {% if remetente or assunto %}
-                        <small class="text-secondary" style="color:#9da3b5!important;">
+                        <small class="text-secondary text-soft">
                             {% if remetente %}De: {{ remetente }}{% endif %}{% if remetente and assunto %} — {% endif %}{% if assunto %}Assunto: {{ assunto }}{% endif %}
                         </small>
                         {% endif %}
                     </div>
                     <span class="badge bg-danger text-white">IA</span>
                 </div>
-                <pre class="mb-0" style="white-space: pre-wrap; color:#e8e9ee; background: transparent; border: none; padding:0;">{{ resultado }}</pre>
+                <pre class="mb-0" style="white-space: pre-wrap; color:var(--text); background: transparent; border: none; padding:0;">{{ resultado }}</pre>
             </div>
             {% endif %}
             {% if erro %}
@@ -327,7 +370,7 @@
                 <div class="section-title mb-0">Treine seu olho</div>
                 <span class="badge bg-danger text-white">Game</span>
             </div>
-            <p class="text-secondary mb-3" style="color:#9da3b5!important;">Classifique e-mails simulados como seguros ou phishing. Ganhe pontos, mantenha vidas e desbloqueie combos.</p>
+            <p class="text-secondary text-soft mb-3">Classifique e-mails simulados como seguros ou phishing. Ganhe pontos, mantenha vidas e desbloqueie combos.</p>
             <div class="d-flex align-items-center gap-3 mb-3">
                 <div class="pill mb-0">
                     <span class="badge bg-danger rounded-pill">Score</span>
@@ -345,20 +388,20 @@
                     <div class="progress">
                         <div id="timer-bar" class="progress-bar" style="width: 100%;"></div>
                     </div>
-                    <small class="text-secondary" style="color:#9da3b5!important;">120s por sessão</small>
+                    <small class="text-secondary text-soft">120s por sessão</small>
                 </div>
                 <div class="pill mb-0">
                     <span class="badge bg-warning text-dark rounded-pill">Vidas</span>
                     <span id="lives" class="hearts">♥ ♥ ♥</span>
                 </div>
                 <div class="d-flex gap-2">
-                    <button id="start-btn" class="btn btn-outline-light btn-sm">Iniciar rodada</button>
+                    <button id="start-btn" class="btn btn-outline-light btn-sm outline-switch">Iniciar rodada</button>
                     <button id="skip-btn" class="btn btn-outline-secondary btn-sm" disabled>Pular</button>
                 </div>
             </div>
 
-            <div id="game-area" class="p-3 rounded" style="background:#151821; border:1px solid #1f2431;">
-                <p class="mb-0 text-secondary" style="color:#9da3b5!important;">Clique em "Iniciar rodada" para começar.</p>
+            <div id="game-area" class="p-3 rounded" style="background:var(--input-bg); border:1px solid var(--input-border);">
+                <p class="mb-0 text-secondary text-soft">Clique em "Iniciar rodada" para começar.</p>
             </div>
         </div>
     </div>
@@ -370,6 +413,30 @@
             analysisForm.addEventListener("submit", () => {
                 analysisSubmit.disabled = true;
                 analysisSubmit.textContent = "Analisando...";
+            });
+        }
+
+        // Tema claro/escuro
+        const themeToggle = document.getElementById("theme-toggle");
+        const bodyEl = document.body;
+        function applyTheme(theme) {
+            const isLight = theme === "light";
+            bodyEl.classList.toggle("light-mode", isLight);
+            if (themeToggle) {
+                themeToggle.textContent = isLight ? "Modo escuro" : "Modo claro";
+            }
+            document.querySelectorAll(".outline-switch").forEach(btn => {
+                btn.classList.toggle("btn-outline-light", !isLight);
+                btn.classList.toggle("btn-outline-dark", isLight);
+            });
+            localStorage.setItem("radarTheme", theme);
+        }
+        const storedTheme = localStorage.getItem("radarTheme") || "dark";
+        applyTheme(storedTheme);
+        if (themeToggle) {
+            themeToggle.addEventListener("click", () => {
+                const next = bodyEl.classList.contains("light-mode") ? "dark" : "light";
+                applyTheme(next);
             });
         }
 
@@ -504,12 +571,12 @@
 
         async function renderCase() {
             locked = true;
-            gameArea.innerHTML = `<p class="mb-0 text-secondary" style="color:#9da3b5!important;">Gerando novo e-mail com IA...</p>`;
+            gameArea.innerHTML = `<p class="mb-0 text-secondary text-soft">Gerando novo e-mail com IA...</p>`;
             const next = await fetchCase().catch(() => null);
             if (!next) {
                 gameArea.innerHTML = `
                     <div class="mb-2 section-title">Falha ao gerar</div>
-                    <p class="mb-3 text-secondary" style="color:#9da3b5!important;">Não consegui gerar um e-mail agora. Tente novamente.</p>
+                    <p class="mb-3 text-secondary text-soft">Não consegui gerar um e-mail agora. Tente novamente.</p>
                     <button class="btn btn-outline-light btn-sm" onclick="renderCase()">Tentar de novo</button>
                 `;
                 return;
@@ -518,7 +585,7 @@
             locked = false;
             skipBtn.disabled = false;
             gameArea.innerHTML = `
-                <div class="mb-2 text-secondary" style="color:#9da3b5!important;">Classifique este e-mail:</div>
+                <div class="mb-2 text-secondary text-soft">Classifique este e-mail:</div>
                 <div class="mb-2"><strong>De:</strong> ${current.from}</div>
                 <div class="mb-2"><strong>Assunto:</strong> ${current.subject}</div>
                 <div class="mb-3"><strong>Corpo:</strong> ${current.body}</div>
@@ -540,13 +607,13 @@
             } else {
                 streak = 0;
                 lives = Math.max(0, lives - 1);
-                livesEl.textContent = "♥ ".repeat(lives).trim();
+            livesEl.textContent = "♥ ".repeat(lives).trim();
             }
             scoreEl.textContent = score;
             streakEl.textContent = streak;
             updateDifficultyLabel();
             const hints = Array.isArray(current.hints) ? current.hints : [];
-            const status = correct
+                const status = correct
                 ? celebrate[Math.floor(Math.random() * celebrate.length)]
                 : (hints[0] ? `Dica: ${hints[0]}` : warnGeneric[Math.floor(Math.random() * warnGeneric.length)]);
             const statusColor = correct ? "#4ade80" : "#ff4d4d";
@@ -561,7 +628,7 @@
                 <div class="mb-2"><strong>Assunto:</strong> ${current.subject}</div>
                 <div class="mb-3"><strong>Corpo:</strong> ${current.body}</div>
                 <div class="mb-2 section-title">Pistas</div>
-                <ul class="mb-3" style="color:#e8e9ee;">${hintList}</ul>
+                <ul class="mb-3" style="color:var(--text);">${hintList}</ul>
                 <button class="btn btn-danger btn-sm" onclick="renderCase()">Próximo e-mail</button>
             `;
         }
@@ -581,7 +648,7 @@
             locked = true;
             gameArea.innerHTML = `
                 <div class="mb-2 section-title">Fim de jogo</div>
-                <p class="mb-3 text-secondary" style="color:#9da3b5!important;">${message}</p>
+                <p class="mb-3 text-secondary text-soft">${message}</p>
                 <button class="btn btn-outline-light btn-sm" onclick="startGame()">Reiniciar</button>
             `;
             if (timerId) clearInterval(timerId);
@@ -609,7 +676,7 @@
         startBtn.addEventListener("click", startGame);
         // Tooltip simples sobre como jogar
         document.getElementById("section-jogo").insertAdjacentHTML("afterbegin", `
-            <p class="text-secondary" style="color:#9da3b5!important; font-size:0.9rem;">
+            <p class="text-secondary text-soft" style="font-size:0.9rem;">
                 Dica: avalie remetente/domínio, pedidos de dados, tom de urgência e links citados no texto.
             </p>
         `);
@@ -622,3 +689,5 @@
     </script>
 </body>
 </html>
+
+
