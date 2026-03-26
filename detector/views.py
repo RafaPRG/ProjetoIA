@@ -24,6 +24,7 @@ agent = Agent(
         "Se houver incerteza, peça confirmação ao usuário com base nos sinais apontados. "
         "Aponte sinais suspeitos e dê um veredito final objetivo. "
         "Coloque numeros para identificar os tópicos, ao invés de # ou *"
+        "Responda SEMPRE no final com uma linha no formato: VEREDITO: <Legítimo ou Malicioso>."
     ),
 )
 
@@ -76,34 +77,10 @@ def _normalize(text: str) -> str:
 
 
 def _extract_verdict(text: str) -> str:
-    lowered = _normalize(text)
-    safe_markers = [
-        "legitimo",
-        "seguro",
-        "confiavel",
-        "nao e phishing",
-        "nao eh phishing",
-        "nao parece phishing",
-        "sem sinais de phishing",
-        "sem indicios",
-        "nao encontrei indicios",
-    ]
-    mal_markers = ["phishing", "malicioso", "suspeito", "golpe", "spam"]
-
-    negates_phishing = re.search(r"nao[^\.\n]{0,80}(phishing|golpe|malicioso|suspeito|spam)", lowered)
-    has_safe = any(s in lowered for s in safe_markers) or bool(negates_phishing)
-    has_mal = any(m in lowered for m in mal_markers)
-
-    if has_safe and not has_mal:
-        return "Legítimo"
-    if has_mal and not has_safe:
-        return "Malicioso"
-    if has_safe and has_mal:
-        if negates_phishing:
-            return "Legítimo"
-        return "Malicioso"
-    return "Legítimo"
-
+    match = re.search(r"VEREDITO:\s*(Legítimo|Malicioso)", text, re.IGNORECASE)
+    if match:
+        return match.group(1).capitalize()
+    return "Indeterminado"
 
 def index(request):
     if request.method == "POST":
